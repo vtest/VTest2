@@ -26,37 +26,9 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * This is the default backend function for libvarnish' assert facilities.
  */
 
-#include "config.h"
+#include <stdint.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "vas.h"
-
-static void
-VAS_Fail_default(const char *func, const char *file, int line,
-    const char *cond, int err, int xxx)
-{
-
-	if (xxx) {
-		fprintf(stderr,
-		    "Missing errorhandling code in %s(), %s line %d:\n"
-		    "  Condition(%s) not true.\n",
-		    func, file, line, cond);
-	} else {
-		fprintf(stderr,
-		    "Assert error in %s(), %s line %d:\n"
-		    "  Condition(%s) not true.\n",
-		    func, file, line, cond);
-	}
-	if (err)
-		fprintf(stderr,
-		    "  errno = %d (%s)\n", err, strerror(err));
-	abort();
-}
-
-vas_f *VAS_Fail = VAS_Fail_default;
+/* from libvarnish/vnum.c */
+const char *VNUM_2bytes(const char *p, uintmax_t *r, uintmax_t rel);
