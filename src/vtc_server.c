@@ -215,10 +215,10 @@ server_listen(struct server *s)
 
 	if (s->sock >= 0)
 		VTCP_close(&s->sock);
-	if (! VUS_is(s->listen))
-		server_listen_tcp(s, &err);
-	else
+	if (VUS_is(s->listen))
 		server_listen_uds(s, &err);
+	else
+		server_listen_tcp(s, &err);
 	if (err != NULL)
 		vtc_fatal(s->vl,
 		    "Server listen address (%s) cannot be resolved: %s",
@@ -247,11 +247,12 @@ server_conn(void *priv, struct vtclog *vl)
 	fd = accept(s->sock, addr, &l);
 	if (fd < 0)
 		vtc_fatal(vl, "Accept failed: %s", strerror(errno));
-	if (! VUS_is(s->listen)) {
+	if (VUS_is(s->listen))
+		vtc_log(vl, 3, "accepted fd %d 0.0.0.0 0", fd);
+	else {
 		VTCP_hisname(fd, abuf, sizeof abuf, pbuf, sizeof pbuf);
 		vtc_log(vl, 3, "accepted fd %d %s %s", fd, abuf, pbuf);
-	} else
-		vtc_log(vl, 3, "accepted fd %d 0.0.0.0 0", fd);
+	}
 	return (fd);
 }
 
@@ -430,15 +431,15 @@ cmd_server_gen_vcl(struct vsb *vsb)
 		if (s->sock < 0 && s->fd >= 0) /* dispatch instance */
 			continue;
 
-		if (! VUS_is(s->listen))
+		if (VUS_is(s->listen))
+			VSB_printf(vsb,
+				   "backend %s { .path = \"%s\"; }\n",
+				   s->name, s->listen);
+		else
 			VSB_printf(vsb,
 				   "backend %s { .host = \"%s\"; "
 				   ".port = \"%s\"; }\n",
 				   s->name, s->aaddr, s->aport);
-		else
-			VSB_printf(vsb,
-				   "backend %s { .path = \"%s\"; }\n",
-				   s->name, s->listen);
 	}
 	AZ(pthread_mutex_unlock(&server_mtx));
 }
