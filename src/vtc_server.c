@@ -93,9 +93,9 @@ server_new(const char *name, struct vtclog *vl)
 	s->depth = 10;
 	s->sock = -1;
 	s->fd = -1;
-	AZ(pthread_mutex_lock(&server_mtx));
+	PTOK(pthread_mutex_lock(&server_mtx));
 	VTAILQ_INSERT_TAIL(&servers, s, list);
-	AZ(pthread_mutex_unlock(&server_mtx));
+	PTOK(pthread_mutex_unlock(&server_mtx));
 	return (s);
 }
 
@@ -366,7 +366,7 @@ server_dispatch_thread(void *priv)
 		bstrcpy(s2->listen, s->listen);
 		s2->fd = fd;
 		s2->run = 1;
-		AZ(pthread_create(&s2->tp, NULL, server_dispatch_wrk, s2));
+		PTOK(pthread_create(&s2->tp, NULL, server_dispatch_wrk, s2));
 	}
 	pthread_cleanup_pop(0);
 	vtc_logclose(vl);
@@ -380,7 +380,7 @@ server_dispatch(struct server *s)
 	server_listen(s);
 	vtc_log(s->vl, 2, "Starting dispatch server");
 	s->run = 1;
-	AZ(pthread_create(&s->tp, NULL, server_dispatch_thread, s));
+	PTOK(pthread_create(&s->tp, NULL, server_dispatch_thread, s));
 }
 
 /**********************************************************************
@@ -395,7 +395,7 @@ server_break(struct server *s)
 	CHECK_OBJ_NOTNULL(s, SERVER_MAGIC);
 	vtc_log(s->vl, 2, "Breaking for server");
 	(void)pthread_cancel(s->tp);
-	AZ(pthread_join(s->tp, &res));
+	PTOK(pthread_join(s->tp, &res));
 	VTCP_close(&s->sock);
 	s->tp = 0;
 	s->run = 0;
@@ -412,7 +412,7 @@ server_wait(struct server *s)
 
 	CHECK_OBJ_NOTNULL(s, SERVER_MAGIC);
 	vtc_log(s->vl, 2, "Waiting for server (%d/%d)", s->sock, s->fd);
-	AZ(pthread_join(s->tp, &res));
+	PTOK(pthread_join(s->tp, &res));
 	if (res != NULL && !vtc_stop)
 		vtc_fatal(s->vl, "Server returned \"%p\"",
 		    (char *)res);
@@ -429,7 +429,7 @@ cmd_server_gen_vcl(struct vsb *vsb)
 {
 	struct server *s;
 
-	AZ(pthread_mutex_lock(&server_mtx));
+	PTOK(pthread_mutex_lock(&server_mtx));
 	VTAILQ_FOREACH(s, &servers, list) {
 		if (s->is_dispatch)
 			continue;
@@ -443,7 +443,7 @@ cmd_server_gen_vcl(struct vsb *vsb)
 			   "backend %s { .host = \"%s\"; .port = \"%s\"; }\n",
 			   s->name, s->aaddr, s->aport);
 	}
-	AZ(pthread_mutex_unlock(&server_mtx));
+	PTOK(pthread_mutex_unlock(&server_mtx));
 }
 
 
@@ -456,7 +456,7 @@ cmd_server_gen_haproxy_conf(struct vsb *vsb)
 {
 	struct server *s;
 
-	AZ(pthread_mutex_lock(&server_mtx));
+	PTOK(pthread_mutex_lock(&server_mtx));
 	VTAILQ_FOREACH(s, &servers, list) {
 		if (! VUS_is(s->listen))
 			VSB_printf(vsb,
@@ -476,7 +476,7 @@ cmd_server_gen_haproxy_conf(struct vsb *vsb)
 		else
 			INCOMPL();
 	}
-	AZ(pthread_mutex_unlock(&server_mtx));
+	PTOK(pthread_mutex_unlock(&server_mtx));
 }
 
 
@@ -494,12 +494,12 @@ cmd_server(CMD_ARGS)
 	if (av == NULL) {
 		/* Reset and free */
 		while (1) {
-			AZ(pthread_mutex_lock(&server_mtx));
+			PTOK(pthread_mutex_lock(&server_mtx));
 			s = VTAILQ_FIRST(&servers);
 			CHECK_OBJ_ORNULL(s, SERVER_MAGIC);
 			if (s != NULL)
 				VTAILQ_REMOVE(&servers, s, list);
-			AZ(pthread_mutex_unlock(&server_mtx));
+			PTOK(pthread_mutex_unlock(&server_mtx));
 			if (s == NULL)
 				break;
 			if (s->run) {
@@ -516,11 +516,11 @@ cmd_server(CMD_ARGS)
 	AZ(strcmp(av[0], "server"));
 	av++;
 
-	AZ(pthread_mutex_lock(&server_mtx));
+	PTOK(pthread_mutex_lock(&server_mtx));
 	VTAILQ_FOREACH(s, &servers, list)
 		if (!strcmp(s->name, av[0]))
 			break;
-	AZ(pthread_mutex_unlock(&server_mtx));
+	PTOK(pthread_mutex_unlock(&server_mtx));
 	if (s == NULL)
 		s = server_new(av[0], vl);
 	CHECK_OBJ_NOTNULL(s, SERVER_MAGIC);
@@ -580,5 +580,5 @@ cmd_server(CMD_ARGS)
 void
 init_server(void)
 {
-	AZ(pthread_mutex_init(&server_mtx, NULL));
+	PTOK(pthread_mutex_init(&server_mtx, NULL));
 }
