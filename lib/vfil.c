@@ -44,6 +44,7 @@
 #include <sys/statvfs.h>
 #if defined(__linux__) && defined(HAVE_FALLOCATE)
 #  include <linux/magic.h>
+#  include <sys/vfs.h>
 #endif
 
 #include "vdef.h"
