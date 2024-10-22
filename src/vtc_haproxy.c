@@ -31,12 +31,14 @@
 #include "config.h"
 
 #include <inttypes.h>
+#include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h> /* for MUSL (mode_t) */
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <unistd.h>
 
 #include "vtc.h"
@@ -51,6 +53,7 @@
 #define HAPROXY_PROGRAM_ENV_VAR	"HAPROXY_PROGRAM"
 #define HAPROXY_ARGS_ENV_VAR	"HAPROXY_ARGS"
 #define HAPROXY_OPT_WORKER	"-W"
+#define HAPROXY_OPT_SD_WORKER	"-Ws"
 #define HAPROXY_OPT_MCLI	"-S"
 #define HAPROXY_OPT_DAEMON	"-D"
 #define HAPROXY_SIGNAL		SIGINT
@@ -86,6 +89,10 @@ struct haproxy {
 	int			expect_exit;
 	int			expect_signal;
 	int			its_dead_jim;
+
+	/* sd_notify unix socket */
+	struct sockaddr_un      sd_uds;
+	int			sd_sock;
 
 	/* UNIX socket CLI. */
 	char			*cli_fn;
@@ -421,7 +428,7 @@ haproxy_cli_run(struct haproxy_cli *hc)
 }
 
 /**********************************************************************
- *
+ * Wait for the pidfile
  */
 
 static void
@@ -469,6 +476,95 @@ haproxy_wait_pidfile(struct haproxy *h)
 		  h->name, buf_err);
 }
 
+/**********************************************************************
+ * Bind the sd_notify socket
+ */
+static void
+haproxy_bind_sdnotify(struct haproxy *h)
+{
+	char sd_path[PATH_MAX];
+	int sd;
+	int ret;
+	const char *err = NULL;
+	struct sockaddr_un *uds = &h->sd_uds;
+	socklen_t sl = sizeof(*uds);
+
+	bprintf(sd_path, "%s/sd_notify.sock", h->workdir);
+	assert(sd_path[0] == '/');
+
+	if (strlen(sd_path) + 1 > sizeof(uds->sun_path)) {
+		vtc_fatal(h->vl, "Path %s too long for a Unix domain socket", sd_path);
+	}
+	memset(uds->sun_path, 0, sizeof(uds->sun_path));
+	bprintf(uds->sun_path, "%s", sd_path);
+	uds->sun_family = PF_UNIX;
+
+	sd = socket(AF_UNIX, SOCK_DGRAM, 0);
+	if (sd < 0) {
+		err = "socket(2)";
+		goto error;
+	}
+
+	if (unlink(uds->sun_path) != 0 && errno != ENOENT) {
+		err = "unlink(2)";
+		closefd(&sd);
+		goto error;
+	}
+
+	if (bind(sd, (const void*)uds, sl) != 0) {
+		err = "bind(2)";
+		closefd(&sd);
+		goto error;
+	}
+
+	h->sd_sock = sd;
+
+	assert(h->sd_sock > 0);
+	vtc_log(h->vl, 4, "sd_notify %s", sd_path);
+	ret = setenv("NOTIFY_SOCKET", sd_path, 1);
+	assert(ret == 0);
+
+error:
+	if (err != NULL)
+		vtc_fatal(h->vl, "Create sd_notify socket failed: %s", err);
+}
+
+/**********************************************************************
+ * Wait for the "READY" from sd_notify
+ */
+static void
+haproxy_wait_sdnotify_ready(struct haproxy *h)
+{
+	struct pollfd fd[1];
+	char buf[BUFSIZ];
+	int i, r;
+	char *ready = NULL;
+
+	vtc_log(h->vl, 3, "wait-sdnotify-ready");
+
+	/* First try to do an accept on h->sd_sock */
+	memset(fd, 0, sizeof(fd));
+	fd[0].fd = h->sd_sock;
+	fd[0].events = POLLIN;
+
+	i = poll(fd, 1, vtc_maxdur * 1000 / 3);
+	vtc_log(h->vl, 4, "sd_notify recv poll %d 0x%x ", i, fd[0].revents);
+	if (i == 0)
+		vtc_fatal(h->vl, "FAIL timeout waiting for sd_notify recv");
+	if (!(fd[0].revents & POLLIN))
+		vtc_fatal(h->vl, "FAIL sd_notify recv wait failure");
+
+	r = recv(h->sd_sock, buf, sizeof(buf) - 1, 0);
+	if (r > 0) {
+		buf[r] = '\0';
+		ready = strstr(buf, "READY=1");
+	}
+
+	if (!ready)
+		vtc_fatal(h->vl, "FAIL sd_notify recv READY failure");
+	else
+		vtc_log(h->vl, 3, "sd_notify READY=1");
+}
 /**********************************************************************
  * Allocate and initialize a CLI client
  */
@@ -638,6 +734,8 @@ haproxy_new(const char *name)
 	bprintf(buf, "rm -rf \"%s\" ; mkdir -p \"%s\"", h->workdir, h->workdir);
 	AZ(system(buf));
 
+	h->sd_sock = -1;
+
 	VTAILQ_INIT(&h->envars);
 	VTAILQ_INSERT_TAIL(&haproxies, h, list);
 
@@ -660,6 +758,9 @@ haproxy_delete(struct haproxy *h)
 		bprintf(buf, "rm -rf \"%s\"", h->workdir);
 		AZ(system(buf));
 	}
+
+	if (h->sd_sock >= 0)
+		closefd(&h->sd_sock);
 
 	free(h->name);
 	free(h->workdir);
@@ -718,7 +819,12 @@ haproxy_start(struct haproxy *h)
 		VSB_cat(vsb, " -d");
 
 	if (h->opt_worker) {
-		VSB_cat(vsb, " -W");
+		if (h->opt_worker == 2) { /* sd_notify mode */
+			VSB_cat(vsb, " -Ws");
+			haproxy_bind_sdnotify(h);
+		} else {
+			VSB_cat(vsb, " -W");
+		}
 		if (h->opt_mcli) {
 			int sock;
 			sock = haproxy_create_mcli(h);
@@ -784,6 +890,9 @@ haproxy_start(struct haproxy *h)
 
 	if (h->pid_fn != NULL)
 		haproxy_wait_pidfile(h);
+
+	if (h->opt_worker == 2) /* sd_notify mode */
+		haproxy_wait_sdnotify_ready(h);
 }
 
 
@@ -1097,6 +1206,10 @@ cmd_haproxy(CMD_ARGS)
 		}
 		if (!strcmp(*av, HAPROXY_OPT_WORKER)) {
 			h->opt_worker = 1;
+			continue;
+		}
+		if (!strcmp(*av, HAPROXY_OPT_SD_WORKER)) {
+			h->opt_worker = 2;
 			continue;
 		}
 		if (!strcmp(*av, HAPROXY_OPT_MCLI)) {
