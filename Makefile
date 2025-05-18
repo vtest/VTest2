@@ -102,3 +102,11 @@ clean:
 	rm -f src/teken_state.h
 	rm -f src/vtc_h2_dectbl.h
 	rm -f ${OBJS}
+
+#######################################################################
+# Housekeeping
+#
+.PHONY: update
+
+update:
+	tools/sync/update-code-from-vc.sh
