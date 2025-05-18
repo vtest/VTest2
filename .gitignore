@@ -1,0 +1,11 @@
+lib/*.o
+src/*.o
+src/teken_state.h
+src/vtc_h2_dectbl.h
+vtest
+
+# droppings from submodule use
+tests/*.log
+tests/*.trs
+src/.deps/
+src/.dirstamp
