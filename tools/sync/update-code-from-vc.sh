@@ -46,9 +46,10 @@ git clone --no-tags -o origin --branch "${VARNISHBRANCH}" --single-branch "${VAR
 pushd varnish-cache
 
 git remote remove origin
+git tag "${tagbase}-base" "${BASE}"
+git rebase -X theirs "${tagbase}-base"
 git tag "${tagbase}-head"
 NEWBASE=$(git rev-parse "${tagbase}-head")
-git tag "${tagbase}-base" "${BASE}"
 git checkout -b "${branchbase}-squash" "${tagbase}-base"
 git reset --soft "$(git rev-list --max-parents=0 HEAD)"
 git commit -m "SQUASH"
