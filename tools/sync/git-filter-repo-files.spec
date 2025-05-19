@@ -26,6 +26,10 @@ lib/libvarnish/vbh.c
 lib/libvarnish/vbh.c==>lib/vbh.c
 include/vbh.h
 include/vbh.h==>lib/vbh.h
+lib/libvarnish/vbt.c
+lib/libvarnish/vbt.c==>lib/vbt.c
+include/vbt.h
+include/vbt.h==>lib/vbt.h
 include/vcli.h
 include/vcli.h==>lib/vcli.h
 lib/libvarnish/vct.c
