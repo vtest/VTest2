@@ -25,7 +25,8 @@ CFLAGS=  ${FLAGS}
 LDFLAGS= ${FLAGS} -s
 DEFINES=
 
-INCS=	-Isrc \
+INCS=	-I. \
+	-Isrc \
 	-Ilib \
 	-I/usr/local/include \
 	-pthread
