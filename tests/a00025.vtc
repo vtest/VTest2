@@ -1,5 +1,7 @@
 vtest "Basic VSM status check"
 
+feature vtest_cmd varnish
+
 # just launch varnishd
 varnish v1 -cliok ping
 vsm m1 -expect-status mgt-running

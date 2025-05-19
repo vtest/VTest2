@@ -1,5 +1,7 @@
 vtest "Malformed :path handling"
 
+feature vtest_cmd varnish
+
 server s1 {
 } -start
 
