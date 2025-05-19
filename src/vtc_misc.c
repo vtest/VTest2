@@ -520,6 +520,8 @@ abstract_uds_works(void)
  *        Creation of an abstract unix domain socket succeeded.
  * disable_aslr
  *        ASLR can be disabled.
+ * vtest_cmd <command>
+ *        vtest command <command> is available
  *
  * A feature name can be prefixed with an exclamation mark (!) to skip a
  * test if the feature is present.
@@ -644,6 +646,17 @@ cmd_feature(CMD_ARGS)
 		} else if (!strcmp(feat, "ignore_unknown_macro")) {
 			ign_unknown_macro = 1;
 			good = 1;
+		} else if (!strcmp(feat, "vtest_cmd")) {
+			good = 1;
+			skip = !neg;
+			av++;
+			if (*av == NULL)
+				vtc_fatal(vl, "vtest_cmd needs the command name");
+#define CMD_TOP(n) 				\
+			if (!strcmp(*av, #n))	\
+				skip = neg;
+#define CMD_GLOBAL(n) CMD_TOP(n)
+#include "cmds.h"
 		}
 		if (!good)
 			vtc_fatal(vl, "FAIL test, unknown feature: %s", feat);
