@@ -1,5 +1,6 @@
 #define HAVE_CLOCK_GETTIME 1
 #define HAVE_NANOSLEEP 1
+#define WITH_ZLIB 1	// otherwise use vgz + libvarnish
 
 #ifdef __linux__
 #  define _GNU_SOURCE 1

@@ -36,7 +36,11 @@
 
 #include "vtc.h"
 #include "vtc_http.h"
+#if defined(WITH_ZLIB)
+#include <zlib.h>
+#else
 #include "vgz.h"
+#endif
 
 #ifdef VGZ_EXTENSIONS
 static void
