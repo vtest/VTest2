@@ -1,11 +1,5 @@
 # VTest2
 
-# WIP WARNING
-
-As long as this WARNING is present, this repository is not considered stable and
-might undergo force-pushes. Once it is stable, this warning will be removed and
-the repository will become available as https://github.com/vtest/VTest2
-
 # The HTTP test-program formerly known as Varnishtest (reiterated)
 
 This project is the second iteration of the (almost) unvarnished varnishtest
