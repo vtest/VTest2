@@ -102,7 +102,7 @@ also go directly to vtest2.
 
 Yet even in this new scenario, the code in the [lib](lib/) directory of the
 vtest2 code base still comes from Varnish-Cache. To simplify updating this
-shared code, a [script](update-code-from-vc.sh) has been written, which
+shared code, a [script](tools/sync/update-code-from-vc.sh) has been written, which
 basically uses `git filter-repo`, `git format-patch` and `git am` to
 automatically apply patches to the shared code base from Varnish-Cache to vtest.
 
