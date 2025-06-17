@@ -267,7 +267,7 @@ server_disc(void *priv, struct vtclog *vl, int *fdp)
 	vtc_log(vl, 3, "shutting fd %d (server run)", *fdp);
 	j = shutdown(*fdp, SHUT_WR);
 	if (!vtc_stop && !VTCP_Check(j))
-		vtc_fatal(vl, "Shutdown failed: %s", strerror(errno));
+		vtc_fatal(vl, "Shutdown(RD) failed: %s", strerror(errno));
 	VTCP_close(fdp);
 }
 
@@ -324,7 +324,7 @@ server_dispatch_wrk(void *priv)
 	vtc_log(vl, 3, "shutting fd %d (server dispatch)", fd);
 	j = shutdown(fd, SHUT_WR);
 	if (!VTCP_Check(j))
-		vtc_fatal(vl, "Shutdown failed: %s", strerror(errno));
+		vtc_fatal(vl, "Shutdown(WR) failed: %s", strerror(errno));
 	VTCP_close(&s->fd);
 	vtc_log(vl, 2, "Ending");
 	pthread_cleanup_pop(0);

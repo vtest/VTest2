@@ -4,7 +4,7 @@ barrier b1 cond 2
 
 server s1 {
 	rxreq
-	shutdown -read
+	shutdown -read -notconn
 	txresp
 } -start
 
@@ -17,7 +17,7 @@ server s2 {
 
 client c1 -connect "${s1_sock}" {
 	txreq
-	shutdown -write
+	shutdown -write -notconn
 	rxresp
 	expect resp.status == 200
 } -run

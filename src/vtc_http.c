@@ -1602,6 +1602,8 @@ cmd_http_accept(CMD_ARGS)
  *		Shutdown the read direction.
  *	\-write
  *		Shutdown the write direction.
+ *	\-notconn
+ *		OK to get ENOTCONN
  *
  *	The default is both direction.
  */
@@ -1610,6 +1612,8 @@ cmd_http_shutdown(CMD_ARGS)
 {
 	struct http *hp;
 	int how = SHUT_RDWR;
+	int notconn = 0;
+	int i, j;
 	const char *str[] = {
 		[SHUT_RD]	= "RD",
 		[SHUT_WR]	= "WR",
@@ -1621,13 +1625,18 @@ cmd_http_shutdown(CMD_ARGS)
 	AZ(strcmp(av[0], "shutdown"));
 	av++;
 
-	if (*av != NULL) {
+	while (*av != NULL) {
 		if (!strcmp(*av, "-read")) {
 			how = SHUT_RD;
 			av++;
 		} else if (!strcmp(*av, "-write")) {
 			how = SHUT_WR;
 			av++;
+		} else if (!strcmp(*av, "-notconn")) {
+			notconn = 1;
+			av++;
+		} else {
+			break;
 		}
 	}
 
@@ -1635,9 +1644,22 @@ cmd_http_shutdown(CMD_ARGS)
 		vtc_fatal(hp->vl, "Unknown http shutdown spec: %s\n", *av);
 
 	vtc_log(vl, 4, "Shutting down fd (%s): %d", str[how], hp->sess->fd);
-	if (shutdown(hp->sess->fd, how) < 0)
-		vtc_log(vl, hp->fatal, "Shutdown failed: %s", strerror(errno));
-	vtc_log(vl, 3, "Shutdown socket fd (%d): %d", how, hp->sess->fd);
+	i = shutdown(hp->sess->fd, how);
+	j = errno;
+	if (i < 0 && j == ENOTCONN && notconn)
+		vtc_log(vl, 3,
+		    "Shutdown(%s) socket fd %d, (was already closed)",
+		    str[how], hp->sess->fd
+		);
+	else if (i < 0 && j == ENOTCONN && notconn)
+		vtc_log(vl, hp->fatal,
+		    "Shutdown(%s) socket fd %d, failed, %s",
+		    str[how], hp->sess->fd, strerror(j)
+		);
+	else
+		vtc_log(vl, 3, "Shutdown(%s) socket fd %d",
+		    str[how], hp->sess->fd
+		);
 }
 
 /* SECTION: client-server.spec.fatal
