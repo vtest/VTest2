@@ -129,8 +129,7 @@ clean_headers(struct hpk_hdr *h)
 	while (h->t && n > 0) {
 		if (h->key.len)
 			free(h->key.ptr);
-		if (h->value.len)
-			free(h->value.ptr);
+		free(h->value.ptr);
 		memset(h, 0, sizeof(*h));
 		h++;
 		n--;
