@@ -17,6 +17,7 @@ server s2  {
 	txresp
 	rxreq
 	# default User-Agent header is not included when -nouseragent is specified
+	expect req.http.foo == bar
 	expect req.http.User-Agent == <undef>
 	txresp -noserver
 } -start
@@ -36,7 +37,7 @@ client c202 -connect ${s2_sock} {
 	txreq
 	rxresp
 	expect resp.http.Server == "s2"
-	txreq -nouseragent
+	txreq -hdr "foo: bar" -nouseragent
 	rxresp
 	# default Server header is not included when -noserver is specified
 	expect resp.http.Server == <undef>
