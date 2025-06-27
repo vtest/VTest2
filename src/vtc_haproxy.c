@@ -49,6 +49,7 @@
 #include "vtcp.h"
 #include "vsa.h"
 #include "vtim.h"
+#include "vudp.h"
 
 #define HAPROXY_PROGRAM_ENV_VAR	"HAPROXY_PROGRAM"
 #define HAPROXY_ARGS_ENV_VAR	"HAPROXY_ARGS"
@@ -973,11 +974,13 @@ haproxy_build_backends(struct haproxy *h, const char *vsb_data)
 		const char *err;
 		char vsabuf[vsa_suckaddr_len];
 		const struct suckaddr *sua;
+		int quic_sock;
 
 		p = strstr(p, HAPROXY_BE_FD_STR);
 		if (!p)
 			break;
 
+		quic_sock = p - s >= 5 && !memcmp(p - 5, "quic+", 5);
 		q = p += HAPROXY_BE_FD_STRLEN;
 		while (*q && *q != '}')
 			q++;
@@ -985,7 +988,12 @@ haproxy_build_backends(struct haproxy *h, const char *vsb_data)
 			break;
 
 		*q++ = '\0';
-		sock = VTCP_listen_on("127.0.0.1:0", NULL, 100, &err);
+		if (quic_sock) {
+			sock = VUDP_bind_on("127.0.0.1:0", "0", &err);
+		}
+		else {
+			sock = VTCP_listen_on("127.0.0.1:0", NULL, 100, &err);
+		}
 		if (err != NULL)
 			vtc_fatal(h->vl,
 			    "Create listen socket failed: %s", err);
