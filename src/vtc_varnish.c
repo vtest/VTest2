@@ -824,7 +824,8 @@ varnish_cli(struct varnish *v, const char *cli, unsigned exp, const char *re)
 			AZ(VRE_error(vsb, err));
 			AZ(VSB_finish(vsb));
 			VSB_fini(vsb);
-			varnish_fatal(v, "Expect failed (%s)", errbuf);
+			varnish_fatal(v, "Expect failed (%s), "
+			    "response was \"%s\"", errbuf, resp);
 		}
 		VRE_free(&vre);
 	}
