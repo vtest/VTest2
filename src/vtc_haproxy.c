@@ -548,7 +548,7 @@ haproxy_wait_sdnotify_ready(struct haproxy *h)
 	fd[0].fd = h->sd_sock;
 	fd[0].events = POLLIN;
 
-	i = poll(fd, 1, vtc_maxdur * 1000 / 3);
+	i = poll(fd, 1, (int)(vtc_maxdur * 1000 / 3));
 	vtc_log(h->vl, 4, "sd_notify recv poll %d 0x%x ", i, fd[0].revents);
 	if (i == 0)
 		vtc_fatal(h->vl, "FAIL timeout waiting for sd_notify recv");
