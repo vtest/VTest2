@@ -38,8 +38,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "vtc.h"
-
+#include "vdef.h"
 #include "vas.h"
 #include "vsa.h"
 #include "vss.h"
