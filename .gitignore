@@ -9,3 +9,5 @@ tests/*.log
 tests/*.trs
 src/.deps/
 src/.dirstamp
+lib/.deps/
+lib/.dirstamp
