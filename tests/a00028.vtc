@@ -1,0 +1,30 @@
+varnishtest "Exercise sd_notify code"
+
+# introduced in 3.0-dev7 ("mworker: get rid of libsystemd"), so require >= 3.1
+feature cmd {haproxy --version 2>&1 | grep -Eq 'HA-*Proxy version (3\.[1-9]|[4-9]\.|[0-9]{2,}\.)'}
+feature ignore_unknown_macro
+
+# Do nothing. Is there only to create s1_* macros
+server s1 {
+} -start
+
+haproxy h1 -Ws -S -conf {
+    defaults
+        mode http
+        timeout connect "${HAPROXY_TEST_TIMEOUT-5s}"
+        timeout client  "${HAPROXY_TEST_TIMEOUT-5s}"
+        timeout server  "${HAPROXY_TEST_TIMEOUT-5s}"
+
+    frontend myfrontend
+        bind "fd@${my_fe}"
+        default_backend test
+
+    backend test
+        server www1 ${s1_addr}:${s1_port}
+} -start
+
+haproxy h1 -mcli {
+    delay 0.1
+    send "@1 show info"
+    expect ~ ".*\nProcess_num: 1\n.*"
+} -wait
