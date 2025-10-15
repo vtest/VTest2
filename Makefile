@@ -22,7 +22,7 @@ DEPS=	lib/*.h \
 FLAGS=	-O2 -Wall -Werror
 
 CFLAGS=  ${FLAGS}
-LDFLAGS= ${FLAGS} -s
+LDFLAGS= ${FLAGS} -s -rdynamic -ldl
 DEFINES=
 
 INCS=	-I. \
@@ -52,6 +52,7 @@ vtest: ${DEPS} ${SRCS}
 
 test: vtest
 	env PATH=`pwd`:${PATH} vtest tests/*.vtc
+	./vtest -E `pwd`/ext_foo.so tests/a00029.vtc
 
 #######################################################################
 # ... other point to varnish source tree and use this part:
@@ -69,6 +70,24 @@ varnishtest:	${DEPS} ${SRCS}
 		-L${VARNISH_SRC}/lib/libvarnishapi/.libs \
 		-Wl,--rpath,${VARNISH_SRC}/lib/libvarnishapi/.libs \
 		-lvarnishapi
+
+#######################################################################
+# demo extension
+
+src/debug/ext_foo.o: src/debug/ext_foo.c
+	${CC} \
+		${CFLAGS} \
+		${DEFINES} \
+		${INCS} \
+		-fPIC -DPIC \
+		-o $@ -c $<
+
+ext_foo.so: src/debug/ext_foo.o
+	${CC} \
+		-shared \
+		${LDFLAGS} \
+		-o $@ $<
+
 
 #######################################################################
 # Implicit rule used in a sub-process by the rules above, and makes use
@@ -101,7 +120,7 @@ clean:
 	rm -f vtest varnishtest
 	rm -f src/teken_state.h
 	rm -f src/vtc_h2_dectbl.h
-	rm -f ${OBJS}
+	rm -f ${OBJS} src/debug/ext_foo.o ext_foo.so
 
 #######################################################################
 # Housekeeping

@@ -36,6 +36,7 @@
 #include <sys/wait.h>
 
 #include <ctype.h>
+#include <dlfcn.h>
 #include <dirent.h>
 #include <poll.h>
 #include <stdio.h>
@@ -185,6 +186,7 @@ usage(void)
 	    "Set internal buffer size (default: 1M)");
 	fprintf(stderr, FMT, "-C", "Use cleaner subprocess");
 	fprintf(stderr, FMT, "-D name=val", "Define macro");
+	fprintf(stderr, FMT, "-E extension.so", "Load extenstion");
 	fprintf(stderr, FMT, "-i", "Find varnish binaries in build tree");
 	fprintf(stderr, FMT, "-j jobs", "Run this many tests in parallel");
 	fprintf(stderr, FMT, "-k", "Continue on test failure");
@@ -865,7 +867,7 @@ main(int argc, char * const *argv)
 	AN(cbvsb);
 	setbuf(stdout, NULL);
 	setbuf(stderr, NULL);
-	while ((ch = getopt(argc, argv, "b:CD:hij:kLln:p:qt:vW")) != -1) {
+	while ((ch = getopt(argc, argv, "b:CD:E:hij:kLln:p:qt:vW")) != -1) {
 		switch (ch) {
 		case 'b':
 			if (VNUM_2bytes(optarg, &bufsiz, 0)) {
@@ -887,6 +889,13 @@ main(int argc, char * const *argv)
 			if (!parse_D_opt(optarg)) {
 				fprintf(stderr, "Cannot parse D opt '%s'\n",
 				    optarg);
+				exit(2);
+			}
+			break;
+		case 'E':
+			if (! dlopen(optarg, RTLD_NOW)) {
+				fprintf(stderr, "Failed to load extension %s: %s\n",
+				    optarg, dlerror());
 				exit(2);
 			}
 			break;
