@@ -4,6 +4,7 @@ src/debug/*.o
 src/teken_state.h
 src/vtc_h2_dectbl.h
 vtest
+vtest.pc
 ext_foo.so
 
 # droppings from submodule use

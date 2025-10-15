@@ -7,6 +7,8 @@ VARNISH_SRC ?= /home/phk/Varnish/trunk/varnish-cache
 
 AWK	?=	awk
 
+SED	?=	sed
+
 SRCS=	src/*.c \
 	lib/*.c
 
@@ -35,6 +37,38 @@ LIBS=	-L/usr/local/lib \
 	-lm \
 	-lpcre2-8 \
 	-lz
+
+PREFIX ?= /usr/local
+
+PACKAGE_VERSION = 0.9
+
+#######################################################################
+
+all: vtest
+
+#######################################################################
+
+vtest.pc: vtest.pc.in
+	${SED} <$< >$@.tmp "s:@prefix@:$(PREFIX):; s:@PACKAGE_VERSION@:$(PACKAGE_VERSION):;"
+	mv $@.tmp $@
+
+#######################################################################
+
+HEADERS= \
+	src/vtc.h	\
+	src/cmds.h	\
+	lib/vdef.h	\
+	lib/miniobj.h	\
+	lib/vas.h	\
+	lib/vsb.h
+
+install: vtest vtest.pc
+	umask 022 && \
+	mkdir -p $(PREFIX)/bin $(PREFIX)/include/vtest $(PREFIX)/lib/pkgconfig && \
+	cp vtest $(PREFIX)/bin && chmod 755 $(PREFIX)/bin/vtest && \
+	cp $(HEADERS) $(PREFIX)/include/vtest && \
+	cp vtest.pc $(PREFIX)/lib/pkgconfig && \
+	chmod 644 $(PREFIX)/include/vtest/*.h $(PREFIX)/lib/pkgconfig/vtest.pc
 
 #######################################################################
 # If you want to build vtest without varnish support, use this part:
@@ -88,6 +122,8 @@ ext_foo.so: src/debug/ext_foo.o
 		${LDFLAGS} \
 		-o $@ $<
 
+#######################################################################
+# pkg-config
 
 #######################################################################
 # Implicit rule used in a sub-process by the rules above, and makes use
@@ -121,6 +157,7 @@ clean:
 	rm -f src/teken_state.h
 	rm -f src/vtc_h2_dectbl.h
 	rm -f ${OBJS} src/debug/ext_foo.o ext_foo.so
+	rm -f vtest.pc
 
 #######################################################################
 # Housekeeping

@@ -1,0 +1,10 @@
+prefix=@prefix@
+bindir=${prefix}/bin
+includedir=${prefix}/include
+pkgincludedir=${includedir}/vtest
+
+Name: VTest2
+Description: The HTTP test-program formerly known as Varnishtest (reiterated)
+URL: https://github.com/vtest/VTest2
+Version: @PACKAGE_VERSION@
+Cflags: -I${pkgincludedir}
