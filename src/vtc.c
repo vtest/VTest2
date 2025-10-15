@@ -91,11 +91,63 @@ static const struct cmds global_cmds[] = {
 	{ NULL, NULL }
 };
 
-static const struct cmds top_cmds[] = {
+static const struct cmds builtin_top_cmds[] = {
 #define CMD_TOP(n) { #n, cmd_##n },
 #include "cmds.h"
-	{ NULL, NULL }
 };
+
+static struct dyncmds *top = NULL;
+
+/*
+ * Register commands, to be called from a constructor/init function
+ *
+ * the cmds array always has one additional NULL entry.
+ *
+ * Because we always search commands in order, the first registration of a
+ * command wins. We do not check for duplicates.
+ *
+ * NB: We never free the dyncmds deliberately as most of the allocations in
+ */
+static void
+register_cmds(struct dyncmds **dynp, const struct cmds *cmds, unsigned n)
+{
+	struct dyncmds *dyn;
+
+	AN(dynp);
+	dyn = *dynp;
+	if (dyn == NULL) {
+		ALLOC_FLEX_OBJ(dyn, cmds, n + 1, VTC_DYNCMDS_MAGIC);
+		AN(dyn);
+		dyn->n = 1;
+	} else {
+		CHECK_OBJ(dyn, VTC_DYNCMDS_MAGIC);
+		dyn = realloc(dyn, SIZEOF_FLEX_OBJ(dyn, cmds, dyn->n + n));
+		AN(dyn);
+	}
+	assert(dyn->n >= 1);
+	memcpy(&dyn->cmds[dyn->n - 1], cmds, n * sizeof *cmds);
+	dyn->n += n;
+	dyn->cmds[dyn->n - 1] = (struct cmds){0};
+	*dynp = dyn;
+}
+
+void
+register_top_cmds(const struct cmds *cmds, unsigned n)
+{
+	register_cmds(&top, cmds, n);
+}
+
+const struct cmds *
+top_cmds(void)
+{
+	return (top->cmds);
+}
+
+static __attribute__((constructor)) void
+register_builtin_top_cmds(void)
+{
+	register_top_cmds(builtin_top_cmds, vcountof(builtin_top_cmds));
+}
 
 /**********************************************************************/
 
@@ -545,7 +597,7 @@ fail_out(void)
 		vtc_stop = 1;
 	vtc_log(vltop, 1, "RESETTING after %s", tfn);
 	reset_cmds(global_cmds);
-	reset_cmds(top_cmds);
+	reset_cmds(top->cmds);
 	vtc_error |= old_err;
 
 	if (vtc_error)
@@ -579,7 +631,7 @@ exec_file(const char *fn, const char *script, const char *tmpdir,
 	vtc_loginit(logbuf, loglen);
 	vltop = vtc_logopen("top");
 	AN(vltop);
-	vtc_log_set_cmd(vltop, top_cmds);
+	vtc_log_set_cmd(vltop, top->cmds);
 
 	vtc_log(vltop, 1, "TEST %s starting", fn);
 

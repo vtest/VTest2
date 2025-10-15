@@ -652,11 +652,9 @@ cmd_feature(CMD_ARGS)
 			av++;
 			if (*av == NULL)
 				vtc_fatal(vl, "vtest_cmd needs the command name");
-#define CMD_TOP(n) 				\
-			if (!strcmp(*av, #n))	\
-				skip = neg;
-#define CMD_GLOBAL(n) CMD_TOP(n)
-#include "cmds.h"
+			for (const struct cmds *cmd = top_cmds(); cmd->name != NULL; cmd++)
+				if (!strcmp(*av, cmd->name))
+					skip = neg;
 		}
 		if (!good)
 			vtc_fatal(vl, "FAIL test, unknown feature: %s", feat);

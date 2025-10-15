@@ -65,6 +65,16 @@ struct cmds {
 	cmd_f		*cmd;
 };
 
+// to extend cmds with shared objects during startup
+struct dyncmds {
+	unsigned		magic;
+#define VTC_DYNCMDS_MAGIC	0xc298428f
+	unsigned		n;
+	struct cmds		cmds[] v_counted_by_(n);
+};
+void register_top_cmds(const struct cmds *cmds, unsigned n);
+const struct cmds * top_cmds(void);
+
 void parse_string(struct vtclog *vl, void *priv, const char *spec);
 int fail_out(void);
 
