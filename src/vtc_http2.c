@@ -2554,12 +2554,12 @@ cmd_expect(CMD_ARGS)
 	AN(av[1]);
 	AN(av[2]);
 	AZ(av[3]);
-	PTOK(pthread_mutex_lock(&s->hp->mtx));
+	PTOK(pthread_mutex_lock(&hp->mtx));
 	lhs = cmd_var_resolve(s, av[0], buf);
 	cmp = av[1];
 	rhs = cmd_var_resolve(s, av[2], buf);
 	vtc_expect(vl, av[0], lhs, cmp, av[2], rhs);
-	PTOK(pthread_mutex_unlock(&s->hp->mtx));
+	PTOK(pthread_mutex_unlock(&hp->mtx));
 }
 
 /* SECTION: stream.spec.gunzip gunzip
@@ -2579,7 +2579,7 @@ cmd_gunzip(CMD_ARGS)
 	hp = s->hp;
 	CHECK_OBJ_NOTNULL(hp, HTTP_MAGIC);
 
-	vtc_gunzip(s->hp, s->body, &s->bodylen);
+	vtc_gunzip(hp, s->body, &s->bodylen);
 }
 
 /* SECTION: stream.spec.write_body
