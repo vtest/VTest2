@@ -84,7 +84,7 @@ test: vtest
 # 1. You must set DESTDIR
 # 2. DESTDIR must have 'include' and 'bin' subdirs.
 
-install: vtest _install
+install: vtest
 	@[ ! -z "${DESTDIR}" ] || \
 		( echo "You must set DESTDIR" 1>&2 ; exit 2)
 	@[ -d "${DESTDIR}" ] || \
