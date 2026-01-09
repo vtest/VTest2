@@ -1,6 +1,6 @@
 #
 
-PYTHON3	?=	python3
+PYTHON	?=	python3
 PYTHON	?=	python
 
 VARNISH_SRC ?= /home/phk/Varnish/trunk/varnish-cache
@@ -38,9 +38,10 @@ LIBS=	-L/usr/local/lib \
 	-ldl
 
 #######################################################################
-# If you want to build vtest without varnish support, use this part:
+# target for vtest without builtin varnish support
 
 vtest: ${DEPS} ${SRCS}
+
 	${MAKE} \
 		 `for s in $(SRCS); do echo $${s%.c}.o;done`
 
@@ -51,13 +52,14 @@ vtest: ${DEPS} ${SRCS}
 		${OBJS} \
 		${LIBS}
 
-test: vtest
-	env PATH=`pwd`:${PATH} vtest tests/*.vtc
-
 #######################################################################
-# ... other point to varnish source tree and use this part:
+# target for vtest with builtin varnish support (needs varnish source tree)
 
 varnishtest:	${DEPS} ${SRCS}
+
+	@[ -d "${VARNISH_SRC}" ] || \
+		( echo "${VARNISH_SRC} directory missing" 1>&2 ; exit 2)
+
 	${MAKE} \
 		 DEFINES="-DVTEST_WITH_VTC_VARNISH -DVTEST_WITH_VTC_LOGEXPECT" \
 		 `for s in $(SRCS); do echo $${s%.c}.o;done`
@@ -70,6 +72,35 @@ varnishtest:	${DEPS} ${SRCS}
 		-L${VARNISH_SRC}/lib/libvarnishapi/.libs \
 		-Wl,--rpath,${VARNISH_SRC}/lib/libvarnishapi/.libs \
 		-lvarnishapi
+
+#######################################################################
+# Test target
+
+test: vtest
+	env PATH=`pwd`:${PATH} vtest tests/*.vtc
+
+#######################################################################
+# Install target.
+# 1. You must set DESTDIR
+# 2. DESTDIR must have 'include' and 'bin' subdirs.
+
+install: vtest _install
+	@[ ! -z "${DESTDIR}" ] || \
+		( echo "You must set DESTDIR" 1>&2 ; exit 2)
+	@[ -d "${DESTDIR}" ] || \
+		( echo "${DESTDIR} directory missing" 1>&2 ; exit 2)
+	@[ -d "${DESTDIR}/bin" ] || \
+		( echo "${DESTDIR}/bin directory missing" 1>&2 ; exit 2)
+	@[ -d "${DESTDIR}/include" ] || \
+		( echo "${DESTDIR}/include directory missing" 1>&2 ; exit 2)
+
+	rm -f ${DESTDIR}/bin/vtest
+	cp vtest ${DESTDIR}/bin/vtest
+	chmod 555 ${DESTDIR}/bin/vtest
+
+	rm -f ${DESTDIR}/include/vtest_api.h
+	cp src/vtest_api.h ${DESTDIR}/include/vtest_api.h
+	chmod 444 ${DESTDIR}/include/vtest_api.h
 
 #######################################################################
 # Implicit rule used in a sub-process by the rules above, and makes use
@@ -85,11 +116,7 @@ varnishtest:	${DEPS} ${SRCS}
 #######################################################################
 
 src/vtc_h2_dectbl.h:	src/huffman_gen.py src/tbl/vhp_huffman.h
-	@( echo trying python3 && \
-	${PYTHON3} src/huffman_gen.py src/tbl/vhp_huffman.h > $@ ) || \
-	( rm -f $@; echo trying python instead && \
-	${PYTHON} src/huffman_gen.py src/tbl/vhp_huffman.h > $@ ) || \
-	( rm -f $@; echo failed && exit 1 )
+	${PYTHON} -u src/huffman_gen.py src/tbl/vhp_huffman.h > $@ 
 
 #######################################################################
 
@@ -99,6 +126,7 @@ src/teken_state.h:	src/gensequences src/sequences
 #######################################################################
 
 clean:
+	rm -rf */.deps */.dirstamp
 	rm -f vtest varnishtest
 	rm -f src/teken_state.h
 	rm -f src/vtc_h2_dectbl.h
