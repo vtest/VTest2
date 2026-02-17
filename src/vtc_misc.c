@@ -397,7 +397,7 @@ dns_works(void)
 	char abuf[VTCP_ADDRBUFSIZE];
 	char pbuf[VTCP_PORTBUFSIZE];
 
-	sa = VSS_ResolveOne(NULL, "dns-canary.varnish-cache.org", NULL,
+	sa = VSS_ResolveOne(NULL, "dns-canary.vinyl-cache.org", NULL,
 	    AF_INET, SOCK_STREAM, 0);
 	if (sa == NULL)
 		return (0);
@@ -406,7 +406,7 @@ dns_works(void)
 	if (strcmp(abuf, "192.0.2.255"))
 		return (0);
 
-	sa = VSS_ResolveOne(NULL, "dns-canary.varnish-cache.org", NULL,
+	sa = VSS_ResolveOne(NULL, "dns-canary.vinyl-cache.org", NULL,
 	    AF_INET6, SOCK_STREAM, 0);
 	if (sa == NULL)
 		return (1); /* the canary is ipv4 only */
