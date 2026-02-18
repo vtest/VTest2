@@ -1,3 +1,11 @@
+# IMPORTANT - THIS REPOSITORY HAS MOVED
+
+New location: <https://code.vinyl-cache.org/vtest/VTest2>
+
+The last usable version on github has the ``last`` tag.
+
+For background, read this: <https://vinyl-cache.org/organization/moving.html>
+
 # VTest2
 
 # The HTTP test-program formerly known as Varnishtest (reiterated)
@@ -6,8 +14,8 @@ This project is the second iteration of the (almost) unvarnished varnishtest
 program, made available as a stand-alone program because it can be used to test
 all sorts of HTTP clients, servers and proxies.
 
-If you are coming from the original [vtest](https://github.com/vtest/VTest) (now
-also known as vtest1), it should be a plug-in replacement.
+If you are coming from the original [vtest](https://code.vinyl-cache.org/vtest/VTest)
+(now also known as vtest1), it should be a plug-in replacement.
 
 Poul-Henning & Nils
 

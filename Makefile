@@ -1,4 +1,12 @@
 #
+all:
+	@echo
+	@echo
+	@echo THIS REPOSITORY HAS MOVED. See README.rst
+	@echo
+	@echo
+	@exit 1
+
 
 PYTHON	?=	python3
 PYTHON	?=	python
@@ -40,7 +48,7 @@ LIBS=	-L/usr/local/lib \
 #######################################################################
 # target for vtest without builtin varnish support
 
-vtest: ${DEPS} ${SRCS}
+vtest: all ${DEPS} ${SRCS}
 
 	${MAKE} \
 		 `for s in $(SRCS); do echo $${s%.c}.o;done`
@@ -55,7 +63,7 @@ vtest: ${DEPS} ${SRCS}
 #######################################################################
 # target for vtest with builtin varnish support (needs varnish source tree)
 
-varnishtest:	${DEPS} ${SRCS}
+varnishtest:	all ${DEPS} ${SRCS}
 
 	@[ -d "${VARNISH_SRC}" ] || \
 		( echo "${VARNISH_SRC} directory missing" 1>&2 ; exit 2)
